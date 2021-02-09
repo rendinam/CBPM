@@ -1,0 +1,15 @@
+#!/bin/bash
+# Simple shell script to start a Pyro4 remote object nameserver
+# on the present host.
+#
+
+export PYRO_HMAC_KEY="KEY"
+
+HOSTNAME=`hostname`
+
+IPADDR=`ping -c 1 ${HOSTNAME} | grep PING | cut --delimiter=" " -f 3`
+IPADDR="${IPADDR:1:${#IPADDR}-2}"
+
+python3 -m Pyro4.naming -n ${IPADDR}
+
+

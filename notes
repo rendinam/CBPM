@@ -1,0 +1,19 @@
+
+Syntax for printing out various pointer-related values
+in read() method of communication data structures:
+
+print('Local address central= '+str(hex(addressof(self.ptr.contents))))
+print('Local address nearby = '+str(hex(addressof(locptr.contents))))
+
+
+print('Remote address       = '+str(hex(self.remote_addr.value)))
+print('Remote address copy  = '+str(hex(remote_address_copy.value)))
+
+
+# Remote address
+print(remote_address_copy)
+# Local address
+print(c_int(addressof(locptr.contents)))
+
+
+http://www.velocityreviews.com/forums/t707686-ctypes-pointer-from-offset-into-array.html

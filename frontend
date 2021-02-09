@@ -1,0 +1,88 @@
+#!/nfs/acc/libs/Linux_x86_64_intel/extra/bin/python3
+#-*- python -*-
+#
+# frontend
+#
+
+from commands import *
+from user_io import *
+import Pyro4
+#from tkinter import *
+#from tkinter import ttk
+
+#root = Tk()
+
+Pyro4.config.HMAC_KEY = b'KEY'
+
+backend_names = ['0_backend']
+backends = []
+command_sets = {}
+for backend_name in backend_names:
+    command_sets[backend_name] = []
+
+supercommands = []
+
+class SuperCommand():
+    def __init__(self):
+        self.local_command = None
+        self.remote_commands = []
+        
+
+# Obtain connections to remote objects registered with the nameserver.
+for backend_name in backend_names:
+    backends.append(Pyro4.Proxy('PYRONAME:'+backend_name))
+
+num_backends = len(backends)
+
+
+for command_pyroname in backends[0].get_command_names():
+    command_name = command_pyroname.split('_',1)[1]
+    supercommand = SuperCommand()
+    supercommand.local_command = globals()[command_name]()
+    for backend in backends:
+        supercommand.remote_commands.append(Pyro4.Proxy('PYRONAME:'+command_pyroname))
+    supercommands.append(supercommand)
+
+
+
+while(True):
+    for idx, scmd in enumerate(supercommands):
+        print('{0:2d} {1:<15}'.format(idx, scmd.local_command.name))
+    menu_option = -1
+    while menu_option not in range(len(supercommands)):
+        menu_option = int(input('\nEnter command: '))
+
+    cname = supercommands[menu_option].local_command.name
+    for scmd in supercommands:
+        if scmd.local_command.name == cname:
+            if 'prompt' in dir(scmd.local_command):
+                param_assignments = scmd.local_command.prompt()
+                # Set parameter assignments on for all backends.
+                for rem_cmd in scmd.remote_commands:
+                    rem_cmd.set_parameters(param_assignments)
+            # Execute command on all backends.
+            for rem_cmd in scmd.remote_commands:
+                rem_cmd.run()
+                # Method for front-ends to execute only.
+                #if 'front_final' in dir(scmd.local_command):
+                #    scmd.local_command.front_final()
+
+
+
+## instrument_status = Pyro4.Proxy('PYRONAME:instrument_status')
+## instrument_status.run()
+## status_table = instrument_status.status_table()
+## print('\n  table:')
+## for entry in status_table:
+##     print(entry)
+## print('')
+
+
+
+
+
+
+    #root.after(0, prompter)
+    #ttk.Button(root, text='BPM Control').grid()
+    #root.after(1, prompter)
+    #root.mainloop()

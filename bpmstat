@@ -1,0 +1,155 @@
+#!/nfs/acc/libs/Linux_x86_64_intel/extra/bin/python3
+#-*- python -*-
+#
+# bpmstat
+#
+
+import sys
+import Pyro4
+from tkinter import *
+from tkinter import ttk
+import threading
+
+from commands import *
+
+
+Pyro4.config.HMAC_KEY = b'KEY'
+print('Obtaining handle on remote server object...')
+server = Pyro4.Proxy('PYRONAME:server')
+
+got_object = False
+
+def main():
+
+    global got_object
+    print('contacting server...')
+    statpanel_name = server.get_statpanel_name()
+    print('statpanel name = '+statpanel_name)
+    if statpanel_name != None:
+        bpm_status = Pyro4.Proxy('PYRONAME:'+statpanel_name)
+        got_object = True
+        server._pyroRelease()
+    else:
+        print('Cannot obtain statpanel connection to server.')
+        sys.exit(1)
+
+    for iter in range(1):
+        statlist = bpm_status.get_status_list()
+        time.sleep(0.1)
+
+
+    root = Tk()
+    root.title('BPM Status')
+
+    tree = ttk.Treeview(root)
+    # Suppress display of default first headerless column.
+    tree['show'] = 'headings'
+    tree.pack()
+
+    class ColumnDef():
+        def __init__(self, valname, text):
+            self.valname = valname
+            self.text = text
+            self.width = len(text)*14
+
+    column_defs = {
+        'name':'Name',
+        'hostname':'Hostname',
+        'heartbeat':'Heartbeat',
+        'clock':'Clock',
+        'main_fpga':'DB ver',
+        'fpga_ids':'Card ver',
+        'turns_seen':'Turns',
+        'build':'Build ID',
+        'core_ver':'Core ver',
+        'plat_ver':'Plat ver'
+        }
+
+    tree['columns'] = ('idx',
+                       'name',
+                       'hostname',
+                       'heartbeat',
+                       'clock',
+                       'turns_seen',
+                       'main_fpga',
+                       'fpga_ids',
+                       'build',
+                       'core_ver',
+                       'plat_ver'
+                       )
+
+    tree.column('idx', width=25)
+    tree.heading('idx')
+
+    for coldef in column_defs:
+        deftext = column_defs[coldef]
+        tree.column(coldef, width=(len(deftext)*13))
+        tree.heading(coldef, text=deftext)
+
+    for id, item in enumerate(statlist):
+        if item['clock'] == 1:
+            clockval = True
+        else:
+            clockval = False
+        
+        vals = [str(id)]
+        for field in tree['columns'][1:]:
+            vals.append(item[field])
+
+        id = tree.insert('',
+                         'end',
+                         values=vals,
+                         tags=(str(id))
+                         )
+
+
+        
+    def updater(root):
+        """Update the values for each instrument of fields that are subject to
+        change.  
+        Grab a new copy of the instrument status list.
+        Load these values into the treeview.
+        Set this function to run periodically in the root
+        window event loop"""
+        statlist = bpm_status.get_status_list()
+        for idx, item in enumerate(statlist):
+            treeidx = 'I{:03d}'.format(idx+1)
+            # Heartbeat
+            tree.set(treeidx,
+                     column='heartbeat',
+                     value=item['heartbeat']
+                     )
+            # Clock integrity
+            if item['clock'] == 1:
+                clockval = True
+                tree.tag_configure(str(idx),
+                                   foreground='black',
+                                   background='white')
+            else:
+                clockval = False
+                tree.tag_configure(str(idx),
+                                   background='red')
+            tree.set(treeidx,
+                     column='clock',
+                     value=str(clockval)
+                     )
+            # Turns seen
+            tree.set(treeidx,
+                     column='turns_seen',
+                     value=item['turns_seen']
+                     ) 
+        root.after(10, updater, root)
+        
+
+
+    updater(root)
+    root.mainloop()
+
+
+if __name__ == '__main__':
+    try:
+        main()
+    finally:
+        if got_object:
+            print('Making cleanup call.\n')
+            server.close_statpanel_link()

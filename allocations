@@ -1,0 +1,31 @@
+[test] 
+host = cesr105
+instruments :  BPM_1W  BPM_2W BPM_3W BPM_4W
+               ## BPM_8AW  BPM_TEST  
+
+
+[test1]
+host = cesr105
+instruments : BPM_8AW
+
+
+[test2]
+host = cesr106
+instruments : BPM_12W3
+
+
+[test3]
+host = cesr105
+instruments : BPM_34W  BPM_35W  BPM_36W  BPM_37W  BPM_38W  BPM_39W
+              BPM_40W  BPM_41W  BPM_42W  BPM_43W  BPM_44W  BPM_45W
+              BPM_46W  BPM_47W
+
+
+[test4]
+host = cesr105
+instruments : BPM_14E2
+
+
+[test5]
+host = cesr105
+instruments : BPM_8AW  BPM_14E2
